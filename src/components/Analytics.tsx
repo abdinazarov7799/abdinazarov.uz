@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import { ymHit } from "@/lib/ym";
 
 export function Analytics() {
-  const counterId = process.env.NEXT_PUBLIC_YM_ID;
-  if (!counterId) return null;
+  const counterId = process.env.NEXT_PUBLIC_YM_ID || "103707399";
+  const enabled = Boolean(counterId);
 
   const ymInit = `
     (function(m,e,t,r,i,k,a){
@@ -30,12 +30,15 @@ export function Analytics() {
   // SPA pageview: route change hit
   const pathname = usePathname();
   useEffect(() => {
-    if (!pathname) return;
+    if (!enabled || !pathname) return;
     ymHit(pathname);
-  }, [pathname]);
+  }, [enabled, pathname]);
 
   // Outbound link tracking + global error tracking + basic session params
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       if (!target) return;
@@ -84,17 +87,21 @@ export function Analytics() {
       window.removeEventListener("error", onError);
       window.removeEventListener("unhandledrejection", onRejection);
     };
-  }, [counterId]);
+  }, [enabled, counterId]);
 
   return (
     <>
-      <Script id="ym-init" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: ymInit }} />
-      <noscript>
-        <div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`https://mc.yandex.ru/watch/${counterId}`} style={{ position: "absolute", left: -9999 }} alt="" />
-        </div>
-      </noscript>
+      {enabled && (
+        <Script id="ym-init" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: ymInit }} />
+      )}
+      {enabled && (
+        <noscript>
+          <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`https://mc.yandex.ru/watch/${counterId}`} style={{ position: "absolute", left: -9999 }} alt="" />
+          </div>
+        </noscript>
+      )}
     </>
   );
 }
